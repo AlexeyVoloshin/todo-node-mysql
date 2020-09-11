@@ -1,16 +1,46 @@
 const express = require('express');
 const path = require('path');
 const app = express();
+const session = require('express-session');
 const dbconnect = require('./utils/database');
-const routTodo = require('./routs/todo');
-const routUser = require('./routs/user');
+const todoRouts = require('./routs/todo');
+// const userRouts = require('./routs/user');
+const authRouts = require('./routs/auth');
+const varMiddleware = require('./middleware/variables');
+const User = require('./models/user');
+const { Op } = require('sequelize');
+
 const PORT = process.env.PORT || 3000;
+
+// app.use(async (req, res, next) => {
+//     try {
+//         const user = await User.findAll({
+//             attributes: ['id', 'name', 'email', 'password'],
+//             where: {
+//                 id: {
+//                     [Op.eq]: 1
+//                 }
+//             }
+//         });
+//         req.user = user;
+//         next();
+//     } catch (error) {
+//         console.error(error);
+//     }
+// })
 
 app.use(express.static(path.join(__dirname, 'public/')));
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
-app.use('/api/todo', routTodo);
-app.use('/api/user', routUser);
+app.use(session({
+    secret: 'some secret value',
+    resave: false,
+    saveUninitialized: false
+}));
+app.use(varMiddleware);
+app.use('/api/todo', todoRouts);
+// app.use('/api/user', userRouts);
+app.use('/api/auth', authRouts);
 
 app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
