@@ -25,10 +25,15 @@ new Vue({
             if (!title) {
                 return;
             }
+            const token = document.cookie.replace(/(?:(?:^|.*;\s*)_csrf\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+            console.log(token)
             fetch('/api/todo', {
                 method: 'post',
                 body: JSON.stringify({ title }),
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': token
+                },
             })
                 .then(res => res.json())
                 .then((todo) => {
@@ -38,10 +43,14 @@ new Vue({
                 .catch(e => console.log(e));
         },
         completeTodo(id) {
+            const token = document.cookie.replace(/(?:(?:^|.*;\s*)_csrf\s*\=\s*([^;]*).*$)|^.*$/, "$1");
             fetch('/api/todo/' + id, {
                 method: 'put',
                 body: JSON.stringify({ done: true }),
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': token
+                },
             })
                 .then(res => res.json())
                 .then((todo) => {
@@ -51,10 +60,14 @@ new Vue({
                 .catch(e => console.log(e));
         },
         removeTodo(id) {
+            const token = document.cookie.replace(/(?:(?:^|.*;\s*)_csrf\s*\=\s*([^;]*).*$)|^.*$/, "$1");
             fetch('/api/todo/' + id, {
                 method: 'delete',
                 body: JSON.stringify({ id }),
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': token
+                }
             })
                 .then(() => {
                     this.todos = this.todos.filter(t => t.id != id);

@@ -2,17 +2,18 @@ const { Router } = require('express');
 const Todo = require('../models/todo');
 const { Op } = require("sequelize");
 const User = require('../models/user');
-const todo = require('../models/todo');
+const auth = require('../middleware/auth');
 
 const router = Router();
 //get all todo list
-router.get('/', async (req, res) => {
-    const id = 1;
+router.get('/', auth, async (req, res) => {
+    const id = req.session.user.id;
     try {
         await User.findByPk(id).then(user => { //находим пользователя в базе и подтягивает его todo list из таблицы todo
             if (!user) {
                 return console.log('User not found');
             }
+
             user.getTodos()
                 .then((todos) => {
                     res.status(200).json(todos);
@@ -26,9 +27,10 @@ router.get('/', async (req, res) => {
     }
 });
 //criate todo to list
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
     //сделать добавление todo через модель пользователя
-    const userId = 1;
+    const userId = req.session.user.id;
+    console.log(userId);
     try {
         await User.findByPk(userId).then(user => {
             if (!user) {
@@ -49,9 +51,9 @@ router.post('/', async (req, res) => {
     }
 });
 //update todo list
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
     const id = +req.params.id;
-    const userId = 1;
+    const userId = req.session.user.id;
     try {
         await User.findByPk(userId).then(user => {
             if (!user) {
@@ -63,7 +65,7 @@ router.put('/:id', async (req, res) => {
                 }
             }).then(todo => {
                 todo[0].update({ done: req.body.done });
-                res.status(200).json(todo);
+                res.status(200).json(todo[0]);
             });
         });
         // await Todo.update({ done: req.body.done }, {
@@ -85,9 +87,9 @@ router.put('/:id', async (req, res) => {
     }
 });
 //delete todo from list
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     const id = +req.params.id;
-    const userId = 1;
+    const userId = req.session.user.id;
     try {
         await User.findByPk(userId).then(user => {
             if (!user) {
