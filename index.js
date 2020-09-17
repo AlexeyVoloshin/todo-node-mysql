@@ -6,7 +6,6 @@ const dbconnect = require('./utils/database');
 const session = require('express-session');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const todoRouts = require('./routs/todo');
-// const userRouts = require('./routs/user');
 const authRouts = require('./routs/auth');
 const varMiddleware = require('./middleware/variables');
 
@@ -34,7 +33,6 @@ app.use(cookieParser());
 app.use(csrf());
 app.use(varMiddleware);
 app.use('/api/todo', todoRouts);
-// app.use('/api/user', userRouts);
 app.use('/api/auth', authRouts);
 
 app.use((req, res, next) => {

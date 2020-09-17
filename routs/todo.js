@@ -1,6 +1,4 @@
 const { Router } = require('express');
-const Todo = require('../models/todo');
-const { Op } = require("sequelize");
 const User = require('../models/user');
 const auth = require('../middleware/auth');
 
@@ -9,7 +7,7 @@ const router = Router();
 router.get('/', auth, async (req, res) => {
     const id = req.session.user.id;
     try {
-        await User.findByPk(id).then(user => { //находим пользователя в базе и подтягивает его todo list из таблицы todo
+        await User.findByPk(id).then(user => { 
             if (!user) {
                 return console.log('User not found');
             }
@@ -28,7 +26,6 @@ router.get('/', auth, async (req, res) => {
 });
 //criate todo to list
 router.post('/', auth, async (req, res) => {
-    //сделать добавление todo через модель пользователя
     const userId = req.session.user.id;
     console.log(userId);
     try {
@@ -68,19 +65,6 @@ router.put('/:id', auth, async (req, res) => {
                 res.status(200).json(todo[0]);
             });
         });
-        // await Todo.update({ done: req.body.done }, {
-        //     where: {
-        //         id
-        //     }
-        // });
-        // const todo = await Todo.findAll({
-        //     where: {
-        //         id: {
-        //             [Op.eq]: id
-        //         }
-        //     }
-        // });
-        // res.status(200).json(todo[0]);
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: e });
@@ -98,8 +82,6 @@ router.delete('/:id', auth, async (req, res) => {
             user.getTodos({
                 where: { id }
             }).then(todo => {
-                // const data2 = data.filter(item => item.id == id);
-                // user.removeTodos(data2, { force: true });
                 todo[0].destroy();
             });
         });
