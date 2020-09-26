@@ -54,7 +54,6 @@ app.use(helmet({
   
 
 app.use(varMiddleware);
-
 app.use('/api/auth', authRouts);
 app.use('/api/todo', todoRouts);
 
