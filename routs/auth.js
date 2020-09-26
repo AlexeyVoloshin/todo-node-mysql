@@ -2,9 +2,11 @@ const { Router } = require('express');
 const User = require('../models/user');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const csrfSecurity = require('../middleware/csrfSecurity');
+
 const router = Router();
 
-router.post('/login', async (req, res) => {
+router.post('/login', csrfSecurity, async (req, res) => {
     try {
         const { email, password } = req.body;
         const candidate = await User.findAll({
@@ -23,14 +25,21 @@ router.post('/login', async (req, res) => {
             if (!areSame) {
                 return res.status(401).json({ message: 'wrong password' });
             } else {
-                req.session.user = candidate[0];
+                const isAuthUser = {
+                    id: candidate[0].id,
+                    name: candidate[0].name,
+                    email: candidate[0].email
+                }
+                req.session.user = isAuthUser;
                 req.session.isAuthenticated = true;
+                
                 req.session.save(err => {
                     if (err) {
                         throw err;
                     }
+                    res.cookie('AccessToken', '***Auth token value***',  { httpOnly: true, expires: 0 });
                     res.status(200).json({
-                        user: candidate[0],
+                        user: isAuthUser,
                         isAuth: true
                     });
                 });
@@ -42,30 +51,30 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    try {
-        const { name, email, password, repeat } = req.body;
-        const candidate = await User.findAll({
-            attributes: ['email'],
-            where: {
-                email: {
-                    [Op.eq]: email
-                }
-            }
-        });
-
-        if (candidate[0]) {
-            return res.status(401).json({ message: 'user is already registered' });
+try {
+const { name, email, password, repeat } = req.body;
+const candidate = await User.findAll({
+    attributes: ['email'],
+    where: {
+        email: {
+            [Op.eq]: email
         }
-        const hashPassword = await bcrypt.hash(password, 10);
-        await User.create({
-            name, email, password: hashPassword
-        })
-            .then(() => {
-                res.status(201).json({ create: true });
-            })
-    } catch (error) {
-        console.error(error);
     }
+});
+if (candidate[0]) {
+    return res.status(401).json({ message: 'user is already registered' });
+}
+const hashPassword = await bcrypt.hash(password, 10);
+await User.create({
+    name, email, password: hashPassword
+})
+.then(() => {
+    res.status(201).json({ create: true });
+})
+   
+} catch (error) {
+    console.error(error);
+}
 });
 
 router.get('/logout', async (req, res) => {

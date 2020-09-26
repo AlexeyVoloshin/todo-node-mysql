@@ -1,25 +1,21 @@
 const { Router } = require('express');
-const Todo = require('../models/todo');
-const { Op } = require("sequelize");
-const User = require('../models/user');
 const auth = require('../middleware/auth');
+const findUser = require('../utils/userVerification');
 
 const router = Router();
 //get all todo list
-router.get('/', auth, async (req, res) => {
-    const id = req.session.user.id;
+router.get('/',  async (req, res) => {
+//    const token = req.cookies['AccessToken'];
+// 	console.log(token)
+//   if (token !== '***Auth token value***') {
+// 	return res.status(401).json({ message: 'wrong token' });
+//   }
+    // const id = req.session.user.id;
     try {
-        await User.findByPk(id).then(user => { //находим пользователя в базе и подтягивает его todo list из таблицы todo
-            if (!user) {
-                return console.log('User not found');
-            }
-
-            user.getTodos()
-                .then((todos) => {
-                    res.status(200).json(todos);
-                });
-        }).catch(e => {
-            console.error(e);
+        const user = await findUser(1);
+        user.getTodos()
+        .then((todos) => {
+            res.status(200).json(todos);
         });
     } catch (e) {
         console.error(e);
@@ -29,21 +25,15 @@ router.get('/', auth, async (req, res) => {
 //criate todo to list
 router.post('/', auth, async (req, res) => {
     //сделать добавление todo через модель пользователя
-    const userId = req.session.user.id;
-    console.log(userId);
+    const id = req.session.user.id;
     try {
-        await User.findByPk(userId).then(user => {
-            if (!user) {
-                return console.log("User not found");
-            }
-            user.createTodo({
-                title: req.body.title,
-                done: false
-            }).then((responce) => {
-                const todo = responce.dataValues;
-                res.status(201).json(todo);
-
-            });
+        const user = await findUser(id);
+        user.createTodo({
+            title: req.body.title,
+            done: false
+        }).then((responce) => {
+            const todo = responce.dataValues;
+            res.status(201).json(todo);
         });
     } catch (e) {
         console.error(e);
@@ -52,35 +42,18 @@ router.post('/', auth, async (req, res) => {
 });
 //update todo list
 router.put('/:id', auth, async (req, res) => {
-    const id = +req.params.id;
+    const idTodo = +req.params.id;
     const userId = req.session.user.id;
     try {
-        await User.findByPk(userId).then(user => {
-            if (!user) {
-                return console.log("User not found");
-            }
-            user.getTodos({
-                where: {
-                    id
-                }
-            }).then(todo => {
-                todo[0].update({ done: req.body.done });
-                res.status(200).json(todo[0]);
-            });
-        });
-        // await Todo.update({ done: req.body.done }, {
-        //     where: {
-        //         id
-        //     }
-        // });
-        // const todo = await Todo.findAll({
-        //     where: {
-        //         id: {
-        //             [Op.eq]: id
-        //         }
-        //     }
-        // });
-        // res.status(200).json(todo[0]);
+    const user = await findUser(userId);
+    user.getTodos({
+        where: {
+            idTodo
+        }
+    }).then(todo => {
+        todo[0].update({ done: req.body.done });
+        res.status(200).json(todo[0]);
+    });
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: e });
@@ -88,22 +61,16 @@ router.put('/:id', auth, async (req, res) => {
 });
 //delete todo from list
 router.delete('/:id', auth, async (req, res) => {
-    const id = +req.params.id;
+    const idTodo = +req.params.id;
     const userId = req.session.user.id;
     try {
-        await User.findByPk(userId).then(user => {
-            if (!user) {
-                return console.log("User not found");
-            }
-            user.getTodos({
-                where: { id }
-            }).then(todo => {
-                // const data2 = data.filter(item => item.id == id);
-                // user.removeTodos(data2, { force: true });
-                todo[0].destroy();
-            });
+    const user = await findUser(userId);
+        user.getTodos({
+            where: { id }
+        }).then(todo => {
+            todo[0].destroy();
         });
-        res.status(204).json({});
+    res.status(204).json({});
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: e });
