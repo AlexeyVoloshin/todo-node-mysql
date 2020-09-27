@@ -3,7 +3,6 @@ const express = require('express');
 const path = require('path');
 const conf = require('./conf');
 const csrf = require('csurf');
-const csrfSecurity = require('./middleware/csrfSecurity');
 const helmet = require('helmet');
 const dbconnect = require('./utils/database');
 const session = require('express-session');
@@ -11,12 +10,10 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const todoRouts = require('./routs/todo');
 const authRouts = require('./routs/auth');
 const varMiddleware = require('./middleware/variables');
-
-// const csrfProtection = csrf();
+const invalidCsrfToken = require('./middleware/invalidCsrfToken');
 
 const app = express();
 
-app.use(cookieParser());
 
 const store = new SequelizeStore({
     collection: 'sessions',
@@ -24,21 +21,27 @@ const store = new SequelizeStore({
     checkExpirationInterval: 15 * 60 * 1000,
     expiration: 1 * 60 * 60 * 1000
 });
+var expiryDate = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
 const PORT = process.env.PORT || 4000;
 
 app.use(express.static(path.join(__dirname, 'public/')));
-app.use(express.json());
+
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
     secret: 'some secret value',
     resave: false,
     saveUninitialized: false,
-    store
+    store,
+    cookie: {
+        httpOnly: true,
+        expires: expiryDate
+    }
 }));
 
-// app.use(csrf({ cookie: true }));
+app.use(csrf({ cookie: true }));
 
 app.use(helmet({
     contentSecurityPolicy: {
@@ -55,9 +58,10 @@ app.use(helmet({
 app.use(varMiddleware);
 app.use('/api/auth', authRouts);
 app.use('/api/todo', todoRouts);
+app.use(invalidCsrfToken);
 
-app.use( csrfSecurity, (req, res, next) => {
-    res.cookie('x-csrf-token', req.csrfToken());
+
+app.use( (req, res, next) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
     next();
 });

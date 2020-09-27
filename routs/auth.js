@@ -2,11 +2,10 @@ const { Router } = require('express');
 const User = require('../models/user');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const csrfSecurity = require('../middleware/csrfSecurity');
 
 const router = Router();
 
-router.post('/login', csrfSecurity, async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const candidate = await User.findAll({
@@ -32,12 +31,11 @@ router.post('/login', csrfSecurity, async (req, res) => {
                 }
                 req.session.user = isAuthUser;
                 req.session.isAuthenticated = true;
-                
                 req.session.save(err => {
                     if (err) {
                         throw err;
                     }
-                    res.cookie('AccessToken', '***Auth token value***',  { httpOnly: true, expires: 0 });
+                    
                     res.status(200).json({
                         user: isAuthUser,
                         isAuth: true

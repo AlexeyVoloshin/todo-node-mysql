@@ -4,15 +4,10 @@ const findUser = require('../utils/userVerification');
 
 const router = Router();
 //get all todo list
-router.get('/',  async (req, res) => {
-//    const token = req.cookies['AccessToken'];
-// 	console.log(token)
-//   if (token !== '***Auth token value***') {
-// 	return res.status(401).json({ message: 'wrong token' });
-//   }
-    // const id = req.session.user.id;
+router.get('/', async (req, res) => {
+    const userId = req.session.user.id;
     try {
-        const user = await findUser(1);
+        const user = await findUser(userId);
         user.getTodos()
         .then((todos) => {
             res.status(200).json(todos);
@@ -23,11 +18,11 @@ router.get('/',  async (req, res) => {
     }
 });
 //criate todo to list
-router.post('/', auth, async (req, res) => {
+router.post('/', async (req, res) => {
     //сделать добавление todo через модель пользователя
-    const id = req.session.user.id;
+    const userId = req.session.user.id;
     try {
-        const user = await findUser(id);
+        const user = await findUser(userId);
         user.createTodo({
             title: req.body.title,
             done: false

@@ -1,8 +1,7 @@
 const User =require('../models/user');
 
 const findUser = async function(id) {
-    console.log(id)
-  const user =  await User.findByPk(id) //находим пользователя в базе и подтягивает его todo list из таблицы todo
+  const user =  await User.findByPk(id) //we find the user in the database and pulls up his list of tasks from the task table
         if (!user) {
             return console.log('User not found');
         } else {

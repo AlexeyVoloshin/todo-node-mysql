@@ -1,3 +1,4 @@
+const { param } = require("../routs/todo");
 
 new Vue({
     el: '#app',
@@ -10,8 +11,14 @@ new Vue({
         };
     },
     created() {
+        
+        const token = document.cookie.replace(/(?:(?:^|.*;\s*)x-csrf-token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+
         fetch('/api/todo', {
             method: 'GET',
+            headers: {
+                'x-csrf-token': token // <-- is the csrf token as a header
+              },
         })
             .then(res => res.json())
             .then((todos) => {
@@ -25,8 +32,8 @@ new Vue({
             if (!title) {
                 return;
             }
-            const token = document.cookie.replace(/(?:(?:^|.*;\s*)_csrf\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-            console.log(token)
+            const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            
             fetch('/api/todo', {
                 method: 'post',
                 body: JSON.stringify({ title }),
