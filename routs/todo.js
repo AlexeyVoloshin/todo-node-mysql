@@ -1,13 +1,17 @@
 const { Router } = require('express');
 const auth = require('../middleware/auth');
-const findUser = require('../utils/userVerification');
+const findUser = require('../utils/databaseQueries');
+const { validationResult } = require('express-validator');
+const { addValidators, updateValidators } =require('../utils/validators');
+const { Op } = require('sequelize');
+
 
 const router = Router();
 //get all todo list
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
     const userId = req.session.user.id;
     try {
-        const user = await findUser(userId);
+        const user = await findUser('id', userId);
         user.getTodos()
         .then((todos) => {
             res.status(200).json(todos);
@@ -18,11 +22,14 @@ router.get('/', async (req, res) => {
     }
 });
 //criate todo to list
-router.post('/', async (req, res) => {
-    //сделать добавление todo через модель пользователя
+router.post('/', auth, addValidators, async (req, res) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({ message: errors.array()[0].msg })
+    };
     const userId = req.session.user.id;
     try {
-        const user = await findUser(userId);
+        const user = await findUser('id', userId);
         user.createTodo({
             title: req.body.title,
             done: false
@@ -36,19 +43,27 @@ router.post('/', async (req, res) => {
     }
 });
 //update todo list
-router.put('/:id', auth, async (req, res) => {
-    const idTodo = +req.params.id;
+router.put('/:id', auth, updateValidators, async (req, res) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({ message: errors.array()[0].msg });
+    };
+    const idTodo = req.params.id;
     const userId = req.session.user.id;
     try {
-    const user = await findUser(userId);
-    user.getTodos({
-        where: {
-            idTodo
-        }
-    }).then(todo => {
-        todo[0].update({ done: req.body.done });
-        res.status(200).json(todo[0]);
-    });
+    const user = await findUser('id', userId);
+        user.getTodos({
+            where: {
+                id: {
+                    [Op.like]: `%${idTodo}%`
+                }
+            }
+        }).then(todo => {
+            todo[0].update({ done: req.body.done });
+            res.status(200).json(todo[0]);
+        }).catch( (e) => {
+            throw Error(e)
+        }) 
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: e });
@@ -59,13 +74,17 @@ router.delete('/:id', auth, async (req, res) => {
     const idTodo = +req.params.id;
     const userId = req.session.user.id;
     try {
-    const user = await findUser(userId);
+    const user = await findUser('id', userId);
         user.getTodos({
-            where: { id }
+            where: { 
+                id: { 
+                    [Op.like]: `%${idTodo}%`
+                } 
+            }
         }).then(todo => {
             todo[0].destroy();
         });
-    res.status(204).json({});
+    res.status(204).json({message: true});
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: e });
