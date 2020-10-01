@@ -2,74 +2,56 @@ const { Router } = require('express');
 const User = require('../models/user');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const findUser = require('../utils/databaseQueries');
+const { validationResult } = require('express-validator');
+const { loginValidators, registerValidators } =require('../utils/validators');
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const candidate = await User.findAll({
-            attributes: ['id', 'name', 'email', 'password'],
-            where: {
-                email: {
-                    [Op.eq]: email
-                }
-            }
-        });
-
-        if (!candidate[0]) {
-            return res.status(401).json({ message: 'user not found' });
-        } else {
-            const areSame = await bcrypt.compare(password, candidate[0].password);
-            if (!areSame) {
-                return res.status(401).json({ message: 'wrong password' });
-            } else {
-                const isAuthUser = {
-                    id: candidate[0].id,
-                    name: candidate[0].name,
-                    email: candidate[0].email
-                }
-                req.session.user = isAuthUser;
-                req.session.isAuthenticated = true;
-                req.session.save(err => {
-                    if (err) {
-                        throw err;
-                    }
-                    
-                    res.status(200).json({
-                        user: isAuthUser,
-                        isAuth: true
-                    });
-                });
-            }
-        }
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-router.post('/register', async (req, res) => {
+router.post('/login', loginValidators, async (req, res) => {
 try {
-const { name, email, password, repeat } = req.body;
-const candidate = await User.findAll({
-    attributes: ['email'],
-    where: {
-        email: {
-            [Op.eq]: email
-        }
+    const { email: value} = req.body;
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({ message: errors.array()[0].msg})
     }
-});
-if (candidate[0]) {
-    return res.status(401).json({ message: 'user is already registered' });
+    const candidate = await findUser('email', value);
+        const isAuthUser = {
+            id: candidate.id,
+            name: candidate.name,
+            email: candidate.email
+        }
+        req.session.user = isAuthUser;
+        req.session.isAuthenticated = true;
+        req.session.save(err => {
+            if (err) {
+                throw err;
+            }
+            res.status(200).json({
+                user: isAuthUser,
+                isAuth: true
+            });
+        });
+} catch (error) {
+    console.error(error);
 }
-const hashPassword = await bcrypt.hash(password, 10);
-await User.create({
-    name, email, password: hashPassword
-})
-.then(() => {
-    res.status(201).json({ create: true });
-})
-   
+});
+
+router.post('/register', registerValidators, async (req, res) => {
+try {
+    const { name, email, password } = req.body;
+
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({ message: errors.array()[0].msg});
+    }
+    const hashPassword = await bcrypt.hash(password, 10);
+    await User.create({
+        name, email, password: hashPassword
+    })
+    .then(() => {
+        res.status(201).json({ create: true });
+    })
 } catch (error) {
     console.error(error);
 }
